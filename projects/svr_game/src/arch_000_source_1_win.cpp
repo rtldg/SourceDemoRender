@@ -250,6 +250,10 @@ bool arch_code_000_source_1_win(svr::game_config_game* game, const char* resourc
     if (!find_resolve_component(game, "start-movie-cmd")) return false;
     if (!find_resolve_component(game, "end-movie-cmd")) return false;
     if (!find_resolve_component(game, "console-cmd-args-offset")) return false;
+    if (!find_resolve_component(game, "cvar-ptr")) return false;
+    if (!find_resolve_component(game, "cvar-find-cmd")) return false;
+    if (!find_resolve_component(game, "cvar-set-value")) return false;
+    if (!find_resolve_component(game, "cvar-value-offset")) return false;
 
     // Skip these on some games.
     if (can_have_veloc_overlay)

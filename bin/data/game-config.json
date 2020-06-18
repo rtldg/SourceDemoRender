@@ -308,6 +308,52 @@
             "value": {
                 "offset": 37
             }
+        },
+        {
+            "code-type": "create-interface",
+            "code-id": "cvar-ptr",
+            "config-id": "config-000-cvar-ptr",
+            "signature": "void*",
+            "value": {
+                "library": "vstdlib.dll",
+                "interface-name": "VEngineCvar004"
+            }
+        },
+        {
+            "code-type": "virtual",
+            "code-id": "cvar-find-cmd",
+            "config-id": "config-000-cvar-find-cmd",
+            "signature": "void*(__fastcall*)(void* p, void* edx, const char* name)",
+            "value": {
+                "vtable-index": 10
+            }
+        },
+        {
+            "code-type": "virtual",
+            "code-id": "cvar-find-cmd",
+            "config-id": "config-001-cvar-find-cmd",
+            "signature": "void*(__fastcall*)(void* p, void* edx, const char* name)",
+            "value": {
+                "vtable-index": 14
+            }
+        },
+        {
+            "code-type": "virtual",
+            "code-id": "cvar-set-value",
+            "config-id": "config-000-cvar-set-value",
+            "signature": "void(__fastcall*)(void* p, void* edx, const char* value)",
+            "value": {
+                "vtable-index": 12
+            }
+        },
+        {
+            "code-type": "offset",
+            "code-id": "cvar-value-offset",
+            "config-id": "config-000-cvar-value-offset",
+            "signature": "ptrdiff_t",
+            "value": {
+                "offset": 36
+            }
         }
     ],
     "games": [
@@ -482,7 +528,11 @@
                 "config-000-local-player-ptr",
                 "config-000-get-spec-target",
                 "config-000-get-player-by-index",
-                "config-000-player-abs-velocity-offset"
+                "config-000-player-abs-velocity-offset",
+                "config-000-cvar-ptr",
+                "config-000-cvar-find-cmd",
+                "config-000-cvar-set-value",
+                "config-000-cvar-value-offset"
             ]
         },
         {

@@ -90,8 +90,12 @@ static void* address_from_export(svr::game_config_comp* comp)
 
 static ptrdiff_t offset_from_config(svr::game_config_comp* comp)
 {
-    auto& value = comp->offset_value;
-    return value.value;
+    return comp->offset_value.value;
+}
+
+static int save_vtable_for_runtime(svr::game_config_comp* comp)
+{
+    return comp->virtual_value.vtable_index;
 }
 
 IDirect3DDevice9Ex* d3d9ex_device_ptr;
@@ -108,6 +112,11 @@ void* local_player_ptr;
 int(__cdecl* get_spec_target_000)();
 void*(__cdecl* get_player_by_index_000)(int value);
 ptrdiff_t player_abs_velocity_offset;
+void* cvar_ptr;
+void*(__fastcall* cvar_find_cmd_000)(void* p, void* edx, const char* name);
+void(__fastcall* cvar_set_value_000)(void* p, void* edx, const char* value);
+int cvar_set_value_vtable;
+ptrdiff_t cvar_value_offset;
 
 svr::reverse_hook_template<decltype(view_render_addr_000)> view_render_hook_000;
 svr::reverse_hook_template<decltype(start_movie_addr_000)> start_movie_hook_000;
@@ -155,6 +164,28 @@ void* get_player_by_index(int value)
     }
 
     return nullptr;
+}
+
+void* cvar_find_cmd(const char* name)
+{
+    if (cvar_find_cmd_000)
+    {
+        return cvar_find_cmd_000(cvar_ptr, nullptr, name);
+    }
+
+    return nullptr;
+}
+
+void cvar_set_value(void* p, const char* value)
+{
+    auto func = (decltype(cvar_set_value_000))svr::reverse_get_virtual(p, cvar_set_value_vtable);
+    func(p, nullptr, value);
+}
+
+const char* cvar_get_value(void* p)
+{
+    auto ret = (const char**)p;
+    return *(const char**)(((uint8_t*)ret + cvar_value_offset));
 }
 
 enum comp_resolve_status
@@ -412,6 +443,70 @@ static comp_resolve_status player_abs_vel_offset_func_000(svr::game_config_comp*
     return COMP_STATUS_UNRESOLVED;
 }
 
+static comp_resolve_status cvar_func_000(svr::game_config_comp* comp)
+{
+    using namespace svr;
+
+    switch (comp->code_type)
+    {
+        case GAME_COMP_CREATE_INTERFACE:
+        {
+            cvar_ptr = address_from_create_interface(comp);
+            return validate_ptr(cvar_ptr);
+        }
+    }
+
+    return COMP_STATUS_UNRESOLVED;
+}
+
+static comp_resolve_status cvar_find_cmd_func_000(svr::game_config_comp* comp)
+{
+    using namespace svr;
+
+    switch (comp->code_type)
+    {
+        case GAME_COMP_VIRTUAL:
+        {
+            cvar_find_cmd_000 = (decltype(cvar_find_cmd_000))address_from_virtual(cvar_ptr, comp);
+            return validate_ptr(cvar_find_cmd_000);
+        }
+    }
+
+    return COMP_STATUS_UNRESOLVED;
+}
+
+static comp_resolve_status cvar_set_value_func_000(svr::game_config_comp* comp)
+{
+    using namespace svr;
+
+    switch (comp->code_type)
+    {
+        case GAME_COMP_VIRTUAL:
+        {
+            cvar_set_value_vtable = save_vtable_for_runtime(comp);
+            return COMP_STATUS_RESOLVED;
+        }
+    }
+
+    return COMP_STATUS_UNRESOLVED;
+}
+
+static comp_resolve_status cvar_value_offset_func_000(svr::game_config_comp* comp)
+{
+    using namespace svr;
+
+    switch (comp->code_type)
+    {
+        case GAME_COMP_OFFSET:
+        {
+            cvar_value_offset = offset_from_config(comp);
+            return COMP_STATUS_RESOLVED;
+        }
+    }
+
+    return COMP_STATUS_UNRESOLVED;
+}
+
 // Signatures in the game config are matched up with a function here.
 static code_comp code_comps[] = {
     code_comp { "d3d9ex-device", "**(IDirect3DDevice9Ex***)", d3d9ex_device_func_000 },
@@ -428,6 +523,10 @@ static code_comp code_comps[] = {
     code_comp { "get-spec-target", "int(__cdecl*)()", get_spec_target_func_000 },
     code_comp { "get-player-by-index", "void*(__cdecl*)(int index)", get_player_by_index_func_000 },
     code_comp { "player-abs-velocity-offset", "ptrdiff_t", player_abs_vel_offset_func_000 },
+    code_comp { "cvar-ptr", "void*", cvar_func_000 },
+    code_comp { "cvar-find-cmd", "void*(__fastcall*)(void* p, void* edx, const char* name)", cvar_find_cmd_func_000 },
+    code_comp { "cvar-set-value", "void(__fastcall*)(void* p, void* edx, const char* value)", cvar_set_value_func_000 },
+    code_comp { "cvar-value-offset", "ptrdiff_t", cvar_value_offset_func_000 },
 };
 
 static code_comp* find_code_comp(const char* name, const char* signature)
