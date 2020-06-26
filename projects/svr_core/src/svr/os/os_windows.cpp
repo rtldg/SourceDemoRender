@@ -24,7 +24,9 @@ namespace svr
 
     os_handle* os_open_event(const char* name)
     {
-        auto ret = (os_handle*)OpenEventA(EVENT_MODIFY_STATE, false, name);
+        // Must supply SYNCHRONIZE to be allowed to wait for it.
+
+        auto ret = (os_handle*)OpenEventA(EVENT_MODIFY_STATE | SYNCHRONIZE, false, name);
 
         if (ret == nullptr)
         {

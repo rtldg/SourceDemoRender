@@ -433,6 +433,8 @@ struct graphics_backend_d3d11
         ID3D11UnorderedAccessView* uav = nullptr;
         ID3D11RenderTargetView* rtv = nullptr;
         ID2D1RenderTarget* d2d1_rt = nullptr;
+        HANDLE shared_handle = nullptr;
+        IDXGIKeyedMutex* shared_mutex = nullptr;
         IDXGISurface* dxgi_surface = nullptr;
 
         defer {
@@ -442,6 +444,8 @@ struct graphics_backend_d3d11
             safe_release(uav);
             safe_release(rtv);
             safe_release(d2d1_rt);
+            if (shared_handle) CloseHandle(shared_handle);
+            safe_release(shared_mutex);
             safe_release(dxgi_surface);
         };
 
@@ -455,6 +459,11 @@ struct graphics_backend_d3d11
         tex_desc.Usage = convert_usage(desc.usage);
         tex_desc.BindFlags = convert_view_access(desc.view_access);
         tex_desc.CPUAccessFlags = convert_cpu_access(desc.cpu_access);
+
+        if (desc.shared)
+        {
+            tex_desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
+        }
 
         D3D11_SUBRESOURCE_DATA initial_desc = {};
         auto initial_desc_ptr = &initial_desc;
@@ -576,6 +585,39 @@ struct graphics_backend_d3d11
             d2d1_rt->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
         }
 
+        if (desc.shared)
+        {
+            IDXGIResource* resource;
+
+            hr = texture->QueryInterface(IID_PPV_ARGS(&resource));
+
+            if (FAILED(hr))
+            {
+                log("d3d11: Could not query texture for a resource ({:x})\n", hr);
+                return nullptr;
+            }
+
+            defer {
+                safe_release(resource);
+            };
+
+            hr = resource->GetSharedHandle(&shared_handle);
+
+            if (FAILED(hr))
+            {
+                log("d3d11: Could not get shared handle from texture resource ({:x})\n", hr);
+                return nullptr;
+            }
+
+            hr = resource->QueryInterface(IID_PPV_ARGS(&shared_mutex));
+
+            if (FAILED(hr))
+            {
+                log("d3d11: Could not query resource for mutex ({:x})\n", hr);
+                return nullptr;
+            }
+        }
+
         auto ret = new graphics_texture;
         ret->name = name;
         ret->width = desc.width;
@@ -588,6 +630,8 @@ struct graphics_backend_d3d11
         swap_ptr(ret->unordered_access.uav, uav);
         swap_ptr(ret->render_target.rtv, rtv);
         swap_ptr(ret->d2d1_rt, d2d1_rt);
+        swap_ptr(ret->shared_handle, (os_handle*&)shared_handle);
+        swap_ptr(ret->shared_mutex, shared_mutex);
 
         return ret;
     }
@@ -640,6 +684,7 @@ struct graphics_backend_d3d11
         ID3D11ShaderResourceView* srv = nullptr;
         ID3D11UnorderedAccessView* uav = nullptr;
         ID3D11RenderTargetView* rtv = nullptr;
+        IDXGIKeyedMutex* shared_mutex = nullptr;
 
         defer {
             safe_release(temp_resource);
@@ -648,6 +693,7 @@ struct graphics_backend_d3d11
             safe_release(srv);
             safe_release(uav);
             safe_release(rtv);
+            safe_release(shared_mutex);
         };
 
         auto hr = device->OpenSharedResource((HANDLE)handle, IID_PPV_ARGS(&temp_resource));
@@ -725,6 +771,10 @@ struct graphics_backend_d3d11
             }
         }
 
+        // This is optional to support. It will only succeed on our own shared textures,
+        // not shared textures from the game.
+        hr = temp_resource->QueryInterface(IID_PPV_ARGS(&shared_mutex));
+
         auto ret = new graphics_texture;
         ret->width = tex_desc.Width;
         ret->height = tex_desc.Height;
@@ -735,6 +785,8 @@ struct graphics_backend_d3d11
         swap_ptr(ret->shader_resource.srv, srv);
         swap_ptr(ret->unordered_access.uav, uav);
         swap_ptr(ret->render_target.rtv, rtv);
+        swap_ptr(ret->shared_handle, handle);
+        swap_ptr(ret->shared_mutex, shared_mutex);
 
         return ret;
     }
@@ -776,6 +828,24 @@ struct graphics_backend_d3d11
     size_t get_texture_size(svr::graphics_texture* value) override
     {
         return value->width * value->height * calc_bytes_pitch(value->format);
+    }
+
+    svr::os_handle* get_shared_texture_handle(svr::graphics_texture* ptr) override
+    {
+        assert(ptr->shared_handle);
+        return (svr::os_handle*)ptr->shared_handle;
+    }
+
+    void lock_shared_texture(svr::graphics_texture* ptr) override
+    {
+        assert(ptr->shared_mutex);
+        ptr->shared_mutex->AcquireSync(0, INFINITE);
+    }
+
+    void unlock_shared_texture(svr::graphics_texture* ptr) override
+    {
+        assert(ptr->shared_mutex);
+        ptr->shared_mutex->ReleaseSync(0);
     }
 
     svr::graphics_buffer* create_buffer(const char* name, const svr::graphics_buffer_desc& desc) override

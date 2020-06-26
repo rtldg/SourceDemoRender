@@ -8,6 +8,7 @@
 #include <svr/ui.hpp>
 #include <svr/thread_context.hpp>
 #include <svr/synchro.hpp>
+#include <svr/log_format.hpp>
 
 #include <charconv>
 
@@ -319,4 +320,80 @@ TEST_CASE("overlay")
     }
 
     ui_exit_message_loop(ui_thread.get_thread_id());
+}
+
+TEST_CASE("shared")
+{
+    using namespace svr;
+
+    char cur_dir[512];
+    os_get_current_dir(cur_dir, sizeof(cur_dir));
+
+    auto graphics = graphics_create_d3d11_backend(cur_dir);
+
+    defer {
+        graphics_destroy_backend(graphics);
+    };
+
+    graphics_texture_desc tex_desc = {};
+    tex_desc.width = WIDTH;
+    tex_desc.height = HEIGHT;
+    tex_desc.format = GRAPHICS_FORMAT_B8G8R8A8_UNORM;
+    tex_desc.usage = GRAPHICS_USAGE_DEFAULT;
+    tex_desc.view_access = GRAPHICS_VIEW_SRV | GRAPHICS_VIEW_RTV;
+    tex_desc.shared = true;
+
+    auto tex = graphics->create_texture("tex", tex_desc);
+
+    auto tex_srv = graphics->get_texture_srv(tex);
+    auto tex_rtv = graphics->get_texture_rtv(tex);
+    auto tex_h = graphics->get_shared_texture_handle(tex);
+
+    char buf[32];
+    auto res = std::to_chars(buf, buf + sizeof(buf), (uintptr_t)tex_h, 16);
+    *res.ptr = 0;
+
+    os_start_proc_desc proc_desc = {};
+    proc_desc.suspended = true;
+
+    os_handle* proc_handle;
+    os_handle* thread_handle;
+
+    auto start_event = os_create_event("crashfort.movieproc.start");
+    auto server_event = os_create_event("crashfort.movieproc.server");
+
+    os_start_proc("svr_movieproc.exe", cur_dir, buf, &proc_desc, &proc_handle, &thread_handle);
+
+    os_resume_thread(thread_handle);
+
+    os_handle_wait(start_event, -1);
+
+    auto client_event = os_open_event("crashfort.movieproc.client");
+
+    for (size_t i = 0; i < 64; i++)
+    {
+        os_reset_event(server_event);
+
+        log("SERVER: {}\n", i);
+
+        auto col = CLEAR_COLORS[i % 6];
+
+        float asd[] = { col.r, col.g, col.b, col.a };
+
+        log("SERVER: clearing\n");
+        graphics->lock_shared_texture(tex);
+        graphics->clear_rtv(tex_rtv, asd);
+        graphics->unlock_shared_texture(tex);
+        log("SERVER: cleared\n");
+
+        log("SERVER: unlocking\n");
+        os_set_event(server_event);
+        log("SERVER: unlocked\n");
+
+        log("SERVER: waiting\n");
+        os_handle_wait(client_event, -1);
+        log("SERVER: waited\n");
+    }
+
+    // os_handle_wait(proc_handle, -1);
 }

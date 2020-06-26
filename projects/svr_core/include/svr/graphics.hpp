@@ -115,6 +115,7 @@ namespace svr
         graphics_initial_desc initial_desc;
 
         bool text_target;
+        bool shared;
     };
 
     struct graphics_texture_load_desc
@@ -315,6 +316,19 @@ namespace svr
         // Returns the total size in bytes of a texture.
         // This size can be used to create a buffer used for downloading a texure.
         virtual size_t get_texture_size(graphics_texture* value) = 0;
+
+        // Returns the handle to a shared texture.
+        // This can be used for textures that are created as shared, or for textures
+        // that were opened as shared.
+        virtual os_handle* get_shared_texture_handle(graphics_texture* ptr) = 0;
+
+        // Locks a shared texture for exclusive access to the current graphics context.
+        // This must be used before using shared textures, reading or writing.
+        virtual void lock_shared_texture(graphics_texture* ptr) = 0;
+
+        // Unlocks a shared texture from exclusive access to the current graphics context.
+        // This must be used after lock_shared_texture has been used.
+        virtual void unlock_shared_texture(graphics_texture* ptr) = 0;
 
         // Creates a new buffer.
         // The provided name should be of static storage duration.

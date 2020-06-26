@@ -47,6 +47,9 @@ namespace svr
         ID3D11Texture2D* texture_download = nullptr;
         ID2D1RenderTarget* d2d1_rt = nullptr;
 
+        os_handle* shared_handle = nullptr;
+        IDXGIKeyedMutex* shared_mutex = nullptr;
+
         graphics_srv shader_resource;
         graphics_rtv render_target;
         graphics_uav unordered_access;
