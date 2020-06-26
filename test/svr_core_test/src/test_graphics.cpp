@@ -349,9 +349,26 @@ TEST_CASE("shared")
     auto tex_rtv = graphics->get_texture_rtv(tex);
     auto tex_h = graphics->get_shared_texture_handle(tex);
 
-    char buf[32];
-    auto res = std::to_chars(buf, buf + sizeof(buf), (uintptr_t)tex_h, 16);
-    *res.ptr = 0;
+    auto mmap = os_create_mmap("server mmap", sizeof(int));
+
+    defer {
+        os_destroy_mmap(mmap);
+    };
+
+    str_builder args_builder;
+
+    auto append_handle_arg = [&](os_handle* v)
+    {
+        char buf[32];
+        auto res = std::to_chars(buf, buf + sizeof(buf), (uintptr_t)v, 16);
+        *res.ptr = 0;
+
+        args_builder.append(buf);
+    };
+
+    append_handle_arg(tex_h);
+    args_builder.append(" ");
+    append_handle_arg(os_get_mmap_handle(mmap));
 
     os_start_proc_desc proc_desc = {};
     proc_desc.suspended = true;
@@ -361,8 +378,9 @@ TEST_CASE("shared")
 
     auto start_event = os_create_event("crashfort.movieproc.start");
     auto server_event = os_create_event("crashfort.movieproc.server");
+    auto break_event = os_create_event("crashfort.movieproc.break");
 
-    os_start_proc("svr_movieproc.exe", cur_dir, buf, &proc_desc, &proc_handle, &thread_handle);
+    os_start_proc("svr_movieproc.exe", cur_dir, args_builder.buf, &proc_desc, &proc_handle, &thread_handle);
 
     os_resume_thread(thread_handle);
 
@@ -370,30 +388,31 @@ TEST_CASE("shared")
 
     auto client_event = os_open_event("crashfort.movieproc.client");
 
-    for (size_t i = 0; i < 64; i++)
+    for (int i = 0; i < 16384; i++)
     {
         os_reset_event(server_event);
 
-        log("SERVER: {}\n", i);
+        // log("SERVER: {}\n", i);
+
+        os_write_mmap(mmap, &i, sizeof(i));
 
         auto col = CLEAR_COLORS[i % 6];
 
         float asd[] = { col.r, col.g, col.b, col.a };
 
-        log("SERVER: clearing\n");
-        graphics->lock_shared_texture(tex);
+        // log("SERVER: clearing\n");
         graphics->clear_rtv(tex_rtv, asd);
-        graphics->unlock_shared_texture(tex);
-        log("SERVER: cleared\n");
+        // log("SERVER: cleared\n");
 
-        log("SERVER: unlocking\n");
+        // log("SERVER: unlocking\n");
         os_set_event(server_event);
-        log("SERVER: unlocked\n");
+        // log("SERVER: unlocked\n");
 
-        log("SERVER: waiting\n");
+        // log("SERVER: waiting\n");
         os_handle_wait(client_event, -1);
-        log("SERVER: waited\n");
+        // log("SERVER: waited\n");
     }
 
+    os_set_event(break_event);
     os_handle_wait(proc_handle, -1);
 }

@@ -38,14 +38,17 @@ int main(int argc, char* argv[])
 
     auto start_event = os_open_event("crashfort.movieproc.start");
 
-    auto handle = (os_handle*)arg_to_ptr(argv[0]);
+    auto tex_h = (os_handle*)arg_to_ptr(argv[0]);
+    auto mmap_h = (os_handle*)arg_to_ptr(argv[1]);
+
+    auto mmap = os_open_mmap("server mmap", mmap_h, sizeof(int));
 
     auto graphics = graphics_create_d3d11_backend(cur_dir);
 
     graphics_texture_open_desc desc = {};
     desc.view_access = GRAPHICS_VIEW_SRV;
 
-    auto tex = graphics->open_shared_texture("game", handle, desc);
+    auto tex = graphics->open_shared_texture("game", tex_h, desc);
     auto tex_srv = graphics->get_texture_srv(tex);
 
     thread_context_event ui_thread;
@@ -65,30 +68,32 @@ int main(int argc, char* argv[])
     start_barrier.wait();
 
     auto server_event = os_open_event("crashfort.movieproc.server");
+    auto break_event = os_open_event("crashfort.movieproc.break");
     auto client_event = os_create_event("crashfort.movieproc.client");
 
     os_set_event(start_event);
     os_close_handle(start_event);
 
-    for (size_t i = 0; i < 64; i++)
+    while (!os_handle_wait(break_event, 0))
     {
         os_reset_event(client_event);
 
-        log("CLIENT: waiting\n");
+        // log("CLIENT: waiting\n");
         os_handle_wait(server_event, -1);
-        log("CLIENT: waited\n");
+        // log("CLIENT: waited\n");
 
-        log("CLIENT: {}\n", i);
+        int frame;
+        os_read_mmap(mmap, &frame, sizeof(int));
 
-        log("CLIENT: rendering\n");
-        graphics->lock_shared_texture(tex);
+        // log("CLIENT: {}\n", frame);
+
+        // log("CLIENT: rendering\n");
         prev->render(tex_srv);
-        graphics->unlock_shared_texture(tex);
-        log("CLIENT: rendered\n");
+        // log("CLIENT: rendered\n");
 
-        log("CLIENT: unlocking\n");
+        // log("CLIENT: unlocking\n");
         os_set_event(client_event);
-        log("CLIENT: unlocked\n");
+        // log("CLIENT: unlocked\n");
     }
 
     ui_exit_message_loop(ui_thread.get_thread_id());

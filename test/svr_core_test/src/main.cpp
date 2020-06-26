@@ -14,9 +14,5 @@ int main(int argc, char* argv[])
         printf(text);
     }, nullptr);
 
-    auto ret = Catch::Session().run(argc, argv);
-
-    fgetc(stdin);
-
-    return ret;
+    return Catch::Session().run(argc, argv);
 }

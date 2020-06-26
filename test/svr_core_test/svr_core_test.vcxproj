@@ -158,6 +158,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\test_graphics.cpp" />
     <ClCompile Include="src\test_movie.cpp" />
+    <ClCompile Include="src\test_os.cpp" />
     <ClCompile Include="src\test_reverse.cpp" />
     <ClCompile Include="src\test_token.cpp" />
     <ClCompile Include="src\test_version.cpp" />

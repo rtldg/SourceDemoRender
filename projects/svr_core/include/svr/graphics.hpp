@@ -322,14 +322,6 @@ namespace svr
         // that were opened as shared.
         virtual os_handle* get_shared_texture_handle(graphics_texture* ptr) = 0;
 
-        // Locks a shared texture for exclusive access to the current graphics context.
-        // This must be used before using shared textures, reading or writing.
-        virtual void lock_shared_texture(graphics_texture* ptr) = 0;
-
-        // Unlocks a shared texture from exclusive access to the current graphics context.
-        // This must be used after lock_shared_texture has been used.
-        virtual void unlock_shared_texture(graphics_texture* ptr) = 0;
-
         // Creates a new buffer.
         // The provided name should be of static storage duration.
         // The returned value must be destroyed.

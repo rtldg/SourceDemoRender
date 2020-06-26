@@ -2,6 +2,7 @@
 #include <svr/mem.hpp>
 #include <svr/log_format.hpp>
 #include <svr/defer.hpp>
+#include <svr/swap.hpp>
 
 #include <Windows.h>
 #include <Psapi.h>
@@ -776,5 +777,104 @@ namespace svr
 
         log("windows: Could not run protocol '{}' ({}, {})\n", url, res, GetLastError());
         return false;
+    }
+
+    struct os_mmap
+    {
+        const char* name;
+
+        HANDLE file_mapping = nullptr;
+        void* view = nullptr;
+    };
+
+    os_mmap* os_create_mmap(const char* name, size_t size)
+    {
+        LARGE_INTEGER large;
+        large.QuadPart = size;
+
+        HANDLE file_mapping = nullptr;
+
+        defer {
+            if (file_mapping) CloseHandle(file_mapping);
+        };
+
+        SECURITY_ATTRIBUTES sa;
+        sa.nLength = sizeof(sa);
+        sa.lpSecurityDescriptor = nullptr;
+        sa.bInheritHandle = true;
+
+        file_mapping = CreateFileMappingA(INVALID_HANDLE_VALUE, &sa, PAGE_READWRITE, large.HighPart, large.LowPart, nullptr);
+
+        if (file_mapping == nullptr)
+        {
+            log("windows: Could not create memory map '{}' ({})\n", name, GetLastError());
+            return nullptr;
+        }
+
+        auto view = MapViewOfFile(file_mapping, FILE_MAP_ALL_ACCESS, 0, 0, large.QuadPart);
+
+        if (view == nullptr)
+        {
+            log("windows: Could not map memory map '{}' ({})\n", name, GetLastError());
+            return nullptr;
+        }
+
+        auto ret = new os_mmap;
+        ret->name = name;
+
+        swap_ptr(ret->file_mapping, file_mapping);
+
+        ret->view = view;
+
+        return ret;
+    }
+
+    os_mmap* os_open_mmap(const char* name, os_handle* ptr, size_t size)
+    {
+        LARGE_INTEGER large;
+        large.QuadPart = size;
+
+        auto view = MapViewOfFile(ptr, FILE_MAP_ALL_ACCESS, 0, 0, large.QuadPart);
+
+        if (view == nullptr)
+        {
+            log("windows: Could not map memory map '{}' ({})\n", name, GetLastError());
+            return nullptr;
+        }
+
+        auto ret = new os_mmap;
+        ret->name = name;
+        ret->file_mapping = ptr;
+        ret->view = view;
+
+        return ret;
+    }
+
+    void os_destroy_mmap(os_mmap* ptr)
+    {
+        auto res = UnmapViewOfFile(ptr->view);
+
+        if (res == 0)
+        {
+            log("windows: Could not unmap mmap '{}' ({})\n", ptr->name, GetLastError());
+        }
+
+        CloseHandle(ptr->file_mapping);
+        delete ptr;
+    }
+
+    void os_write_mmap(os_mmap* ptr, const void* source, size_t size)
+    {
+        memcpy(ptr->view, source, size);
+    }
+
+    void os_read_mmap(os_mmap* ptr, void* dest, size_t size)
+    {
+        memcpy(dest, ptr->view, size);
+    }
+
+    os_handle* os_get_mmap_handle(os_mmap* ptr)
+    {
+        return (os_handle*)ptr->file_mapping;
     }
 }
