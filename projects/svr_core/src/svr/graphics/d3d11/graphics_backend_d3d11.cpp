@@ -833,7 +833,7 @@ struct graphics_backend_d3d11
     svr::os_handle* get_shared_texture_handle(svr::graphics_texture* ptr) override
     {
         assert(ptr->shared_handle);
-        return (svr::os_handle*)ptr->shared_handle;
+        return ptr->shared_handle;
     }
 
     void lock_shared_texture(svr::graphics_texture* ptr) override

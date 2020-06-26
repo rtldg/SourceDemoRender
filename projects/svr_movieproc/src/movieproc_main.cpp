@@ -91,6 +91,6 @@ int main(int argc, char* argv[])
         log("CLIENT: unlocked\n");
     }
 
-    int a = 5;
+    ui_exit_message_loop(ui_thread.get_thread_id());
     return 0;
 }

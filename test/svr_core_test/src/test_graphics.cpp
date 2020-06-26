@@ -395,5 +395,5 @@ TEST_CASE("shared")
         log("SERVER: waited\n");
     }
 
-    // os_handle_wait(proc_handle, -1);
+    os_handle_wait(proc_handle, -1);
 }
