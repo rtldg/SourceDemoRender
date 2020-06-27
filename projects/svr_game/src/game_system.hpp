@@ -21,7 +21,7 @@ uint32_t sys_get_game_rate(game_system* sys);
 
 // Opens up a shared texture and uses it as the game content.
 // This is an alternative function.
-bool sys_open_shared_game_texture(game_system* sys, svr::os_handle* ptr);
+void sys_open_shared_game_texture(game_system* sys, svr::os_handle* ptr);
 
 // Tells the system that there is a new video frame available.
 void sys_new_frame(game_system* sys);

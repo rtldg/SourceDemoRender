@@ -165,7 +165,8 @@ static bool open_game_texture()
         return false;
     }
 
-    return sys_open_shared_game_texture(sys, d3d9ex_graphics.shared_texture.shared_handle);
+    sys_open_shared_game_texture(sys, d3d9ex_graphics.shared_texture.shared_handle);
+    return true;
 }
 
 static void close_game_texture()
@@ -245,16 +246,19 @@ static void __cdecl start_movie_override_000(const void* args)
     int height;
     materials_get_backbuffer_size(width, height);
 
-    if (!sys_start_movie(sys, name.c_str(), profile, width, height))
-    {
-        log("Could not start movie\n");
-        return;
-    }
+    auto error = false;
 
     // Open the render target in here because some games recreate their backbuffer after creation.
     if (!open_game_texture())
     {
         log("Could not open game texture\n");
+        return;
+    }
+
+    if (!sys_start_movie(sys, name.c_str(), profile, width, height))
+    {
+        log("Could not start movie\n");
+        close_game_texture();
         return;
     }
 
@@ -301,12 +305,6 @@ bool arch_code_000_source_1_win(svr::game_config_game* game, const char* resourc
     }
 
     log("Using d3d11 graphics backend\n");
-
-    auto temp_sys = sys_create(resource_path, graphics);
-
-    defer {
-        if (temp_sys) sys_destroy(temp_sys);
-    };
 
     auto can_have_veloc_overlay = is_velocity_overlay_allowed(game);
 
@@ -359,9 +357,9 @@ bool arch_code_000_source_1_win(svr::game_config_game* game, const char* resourc
         console_message(text);
     }, nullptr);
 
-    swap_ptr(sys, temp_sys);
-
+    sys = sys_create(resource_path, graphics);
     sys_set_velocity_overlay_support(sys, can_have_veloc_overlay);
+
     svr_resource_path = resource_path;
     return true;
 }

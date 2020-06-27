@@ -322,6 +322,7 @@ TEST_CASE("overlay")
     ui_exit_message_loop(ui_thread.get_thread_id());
 }
 
+#if 0
 TEST_CASE("shared")
 {
     using namespace svr;
@@ -416,3 +417,4 @@ TEST_CASE("shared")
     os_set_event(break_event);
     os_handle_wait(proc_handle, -1);
 }
+#endif

@@ -807,9 +807,14 @@ struct graphics_backend_d3d11
         context->ClearRenderTargetView(value->rtv, color);
     }
 
-    size_t get_texture_size(svr::graphics_texture* value) override
+    void copy_texture(svr::graphics_texture* source, svr::graphics_texture* dest) override
     {
-        return value->width * value->height * calc_bytes_pitch(value->format);
+        context->CopyResource(dest->texture, source->texture);
+    }
+
+    size_t get_texture_size(svr::graphics_texture* ptr) override
+    {
+        return ptr->width * ptr->height * calc_bytes_pitch(ptr->format);
     }
 
     svr::os_handle* get_shared_texture_handle(svr::graphics_texture* ptr) override

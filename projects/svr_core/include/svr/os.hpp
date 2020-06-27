@@ -195,9 +195,9 @@ namespace svr
     // Runs a command to be used to start the default program associated with a protocol.
     SVR_API bool os_run_protocol(const char* url);
 
-    SVR_API os_mmap* os_create_mmap(const char* name, size_t size);
+    SVR_API os_mmap* os_create_mmap(size_t size);
 
-    SVR_API os_mmap* os_open_mmap(const char* name, os_handle* ptr, size_t size);
+    SVR_API os_mmap* os_open_mmap(os_handle* ptr, size_t size);
 
     SVR_API void os_destroy_mmap(os_mmap* ptr);
 
@@ -206,6 +206,8 @@ namespace svr
     SVR_API void os_read_mmap(os_mmap* ptr, void* dest, size_t size);
 
     SVR_API os_handle* os_get_mmap_handle(os_mmap* ptr);
+
+    SVR_API void* os_view_mmap(os_mmap* ptr);
 
     // Structure which keeps track of sequential writing
     // to keep memory writings in order.

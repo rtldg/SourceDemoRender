@@ -170,6 +170,7 @@
     <ClInclude Include="include\svr\media.hpp" />
     <ClInclude Include="include\svr\movie.hpp" />
     <ClInclude Include="include\svr\mem.hpp" />
+    <ClInclude Include="include\svr\movproc.hpp" />
     <ClInclude Include="include\svr\os.hpp" />
     <ClInclude Include="include\svr\os_win.hpp" />
     <ClInclude Include="include\svr\platform.hpp" />

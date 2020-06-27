@@ -781,13 +781,11 @@ namespace svr
 
     struct os_mmap
     {
-        const char* name;
-
         HANDLE file_mapping = nullptr;
         void* view = nullptr;
     };
 
-    os_mmap* os_create_mmap(const char* name, size_t size)
+    os_mmap* os_create_mmap(size_t size)
     {
         LARGE_INTEGER large;
         large.QuadPart = size;
@@ -807,7 +805,7 @@ namespace svr
 
         if (file_mapping == nullptr)
         {
-            log("windows: Could not create memory map '{}' ({})\n", name, GetLastError());
+            log("windows: Could not create memory map ({})\n", GetLastError());
             return nullptr;
         }
 
@@ -815,12 +813,11 @@ namespace svr
 
         if (view == nullptr)
         {
-            log("windows: Could not map memory map '{}' ({})\n", name, GetLastError());
+            log("windows: Could not map memory map ({})\n", GetLastError());
             return nullptr;
         }
 
         auto ret = new os_mmap;
-        ret->name = name;
 
         swap_ptr(ret->file_mapping, file_mapping);
 
@@ -829,7 +826,7 @@ namespace svr
         return ret;
     }
 
-    os_mmap* os_open_mmap(const char* name, os_handle* ptr, size_t size)
+    os_mmap* os_open_mmap(os_handle* ptr, size_t size)
     {
         LARGE_INTEGER large;
         large.QuadPart = size;
@@ -838,12 +835,11 @@ namespace svr
 
         if (view == nullptr)
         {
-            log("windows: Could not map memory map '{}' ({})\n", name, GetLastError());
+            log("windows: Could not map memory map ({})\n", GetLastError());
             return nullptr;
         }
 
         auto ret = new os_mmap;
-        ret->name = name;
         ret->file_mapping = ptr;
         ret->view = view;
 
@@ -856,7 +852,7 @@ namespace svr
 
         if (res == 0)
         {
-            log("windows: Could not unmap mmap '{}' ({})\n", ptr->name, GetLastError());
+            log("windows: Could not unmap mmap ({})\n", GetLastError());
         }
 
         CloseHandle(ptr->file_mapping);
@@ -876,5 +872,10 @@ namespace svr
     os_handle* os_get_mmap_handle(os_mmap* ptr)
     {
         return (os_handle*)ptr->file_mapping;
+    }
+
+    void* os_view_mmap(os_mmap* ptr)
+    {
+        return ptr->view;
     }
 }

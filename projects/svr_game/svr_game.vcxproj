@@ -144,12 +144,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\game_system2.cpp" />
     <ClCompile Include="src\arch_000_source_1_win.cpp" />
     <ClCompile Include="src\game_comp_base.cpp" />
     <ClCompile Include="src\game_external.cpp" />
     <ClCompile Include="src\game_graphics_d3d9ex.cpp" />
     <ClCompile Include="src\game_init.cpp" />
-    <ClCompile Include="src\game_system.cpp" />
     <ClCompile Include="src\game_system_windows.cpp" />
     <ClCompile Include="src\game_version.cpp" />
   </ItemGroup>

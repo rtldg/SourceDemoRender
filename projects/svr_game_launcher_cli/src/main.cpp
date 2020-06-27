@@ -408,7 +408,7 @@ int main(int argc, char* argv[])
 
     // Keep the console window open. In 99% cases the executable will be started directly from Explorer.
     // The window must remain open so all messages are shown.
-    fgetc(stdin);
+    // fgetc(stdin);
 
     return ret;
 }

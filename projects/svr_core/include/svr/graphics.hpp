@@ -313,9 +313,12 @@ namespace svr
         // Clears a render target view with normalized color values.
         virtual void clear_rtv(graphics_rtv* value, float color[4]) = 0;
 
+        // Copies a texture to another. The textures must be very similar or else it will not work.
+        virtual void copy_texture(graphics_texture* source, graphics_texture* dest) = 0;
+
         // Returns the total size in bytes of a texture.
         // This size can be used to create a buffer used for downloading a texure.
-        virtual size_t get_texture_size(graphics_texture* value) = 0;
+        virtual size_t get_texture_size(graphics_texture* ptr) = 0;
 
         // Returns the handle to a shared texture.
         // This can be used for textures that are created as shared, or for textures
