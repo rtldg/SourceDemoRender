@@ -404,25 +404,30 @@ int main(int argc, char* argv[])
         fwrite(text, 1, strlen(text), stdout);
     }, nullptr);
 
+    auto ret = 0;
+
     bool verify_system_features();
 
     if (!verify_system_features())
     {
-        log("Your system is incompatible with SVR\n");
-        return 1;
+        log("Your system is incompatible with SVR. A Direct3D 11.3 graphics adapter is required\n");
+        ret = 1;
     }
 
-    if (argc > 1)
+    else
     {
-        autostart_game_id = argv[1];
-    }
+        if (argc > 1)
+        {
+            autostart_game_id = argv[1];
+        }
 
-    // Return 0 on success.
-    auto ret = !proc();
+        // Return 0 on success.
+        ret = !proc();
 
-    if (autostart_game_id)
-    {
-        return ret;
+        if (autostart_game_id)
+        {
+            return ret;
+        }
     }
 
     log("You can close this window now\n");
