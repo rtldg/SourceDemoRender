@@ -5,6 +5,55 @@
 #include <d3d11.h>
 #include <stdint.h>
 
+static bool verify_uav_features(ID3D11Device* device)
+{
+    using namespace svr;
+
+    D3D11_FEATURE_DATA_D3D11_OPTIONS2 feature_data = {};
+
+    auto hr = device->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &feature_data, sizeof(feature_data));
+
+    if (FAILED(hr))
+    {
+        log("Could not query hardware feature support ({:#x})\n", (uint32_t)hr);
+        return false;
+    }
+
+    if (!feature_data.TypedUAVLoadAdditionalFormats)
+    {
+        log("Additional UAV load formats not supported\n");
+        return false;
+    }
+
+    // This format must be supported for typed UAV loads and stores. It is the RWTexture2D format that is used for motion blur.
+    // It is a feature of D3D11.3 and above.
+
+    D3D11_FEATURE_DATA_FORMAT_SUPPORT2 format_support = {};
+    format_support.InFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+    hr = device->CheckFeatureSupport(D3D11_FEATURE_FORMAT_SUPPORT2, &format_support, sizeof(format_support));
+
+    if (FAILED(hr))
+    {
+        log("Could not query format support for DXGI_FORMAT_R32G32B32A32_FLOAT ({:#x})\n", (uint32_t)hr);
+        return false;
+    }
+
+    if ((format_support.OutFormatSupport2 & D3D11_FORMAT_SUPPORT2_UAV_TYPED_LOAD) == 0)
+    {
+        log("Typed UAV loads not supported for DXGI_FORMAT_R32G32B32A32_FLOAT\n");
+        return false;
+    }
+
+    if ((format_support.OutFormatSupport2 & D3D11_FORMAT_SUPPORT2_UAV_TYPED_STORE) == 0)
+    {
+        log("Typed UAV stores not supported for DXGI_FORMAT_R32G32B32A32_FLOAT\n");
+        return false;
+    }
+
+    return true;
+}
+
 static bool verify_d3d11_features()
 {
     using namespace svr;
@@ -40,17 +89,7 @@ static bool verify_d3d11_features()
         return false;
     }
 
-    UINT bits = 0;
-
-    // This format must be supported for typed UAV loads. It is the format that is used for motion blur.
-    // It is a feature of D3D11.3 and above.
-    device->CheckFormatSupport(DXGI_FORMAT_R32G32B32A32_FLOAT, &bits);
-
-    if (!(bits & D3D11_FORMAT_SUPPORT_TYPED_UNORDERED_ACCESS_VIEW))
-    {
-        log("DXGI_FORMAT_R32G32B32A32_FLOAT not supported for typed UAV\n");
-        return false;
-    }
+    if (!verify_uav_features(device)) return false;
 
     return true;
 }
