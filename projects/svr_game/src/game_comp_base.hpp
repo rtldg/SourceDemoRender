@@ -28,6 +28,7 @@ extern void* local_player_ptr;
 extern int(__cdecl* get_spec_target_000)();
 extern void*(__cdecl* get_player_by_index_000)(int value);
 extern ptrdiff_t player_abs_velocity_offset;
+extern ptrdiff_t player_view_entity_offset;
 
 extern svr::reverse_hook_template<decltype(view_render_addr_000)> view_render_hook_000;
 extern svr::reverse_hook_template<decltype(start_movie_addr_000)> start_movie_hook_000;

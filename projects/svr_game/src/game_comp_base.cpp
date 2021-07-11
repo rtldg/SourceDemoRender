@@ -176,6 +176,7 @@ void* local_player_ptr;
 int(__cdecl* get_spec_target_000)();
 void*(__cdecl* get_player_by_index_000)(int value);
 ptrdiff_t player_abs_velocity_offset;
+ptrdiff_t player_view_entity_offset = 0;
 
 svr::reverse_hook_template<decltype(view_render_addr_000)> view_render_hook_000;
 svr::reverse_hook_template<decltype(start_movie_addr_000)> start_movie_hook_000;
@@ -489,6 +490,22 @@ static comp_resolve_status player_abs_vel_offset_func_000(svr::game_config_comp*
     return COMP_STATUS_UNRESOLVED;
 }
 
+static comp_resolve_status player_view_entity_offset_func_000(svr::game_config_comp* comp)
+{
+    using namespace svr;
+
+    switch (comp->code_type)
+    {
+    case GAME_COMP_OFFSET:
+    {
+        player_view_entity_offset = offset_from_config(comp);
+        return COMP_STATUS_RESOLVED;
+    }
+    }
+
+    return COMP_STATUS_UNRESOLVED;
+}
+
 static comp_resolve_status cvar_remove_restrict_func_000(svr::game_config_comp* comp)
 {
     using namespace svr;
@@ -533,6 +550,7 @@ static code_comp code_comps[] = {
     code_comp { "get-player-by-index", "void*(__cdecl*)(int index)", get_player_by_index_func_000 },
     code_comp { "player-abs-velocity-offset", "ptrdiff_t", player_abs_vel_offset_func_000 },
     code_comp { "cvar-remove-restrict", "0x00400000", cvar_remove_restrict_func_000 },
+    code_comp { "player-view-entity-offset", "ptrdiff_t", player_view_entity_offset_func_000 },
 };
 
 static code_comp* find_code_comp(const char* name, const char* signature)

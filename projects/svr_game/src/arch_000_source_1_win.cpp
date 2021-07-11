@@ -52,6 +52,7 @@ static bool is_velocity_overlay_allowed(svr::game_config_game* game)
     const char* allowed_ids[] = {
         "css-win",
         "mom-win",
+        "csgo-win",
     };
 
     for (auto i : allowed_ids)
@@ -142,13 +143,18 @@ static void process_velocity_overlay()
 
     auto spec = get_spec_target();
 
-    // TODO
-    // This is always 0 for csgo, so this procedure doesn't work for that game.
-    // Through cheat engine, the variable which contains the spectate played id has been found, but it's
-    // in another location and not in the local player.
+    // get_spec_target is always 0 for csgo, so that procedure doesn't work for that game.
+    // Instead we peek into m_hViewEntity
+    if (spec <= 0 && player_view_entity_offset != 0)
+    {
+        // 0x3F = the mask for 64 total player indexes.
+        spec = (*((int*)player + player_view_entity_offset)) & 0x3F;
+    }
+
     if (spec > 0)
     {
-        player = get_player_by_index(spec);
+        auto target = get_player_by_index(spec);
+        player = (target != 0) ? target : player;
     }
 
     vec3 vel;
@@ -338,6 +344,7 @@ bool arch_code_000_source_1_win(svr::game_config_game* game, const char* resourc
         if (!find_resolve_component(game, "get-spec-target")) return false;
         if (!find_resolve_component(game, "get-player-by-index")) return false;
         if (!find_resolve_component(game, "player-abs-velocity-offset")) return false;
+        find_resolve_component(game, "player-view-entity-offset");
     }
 
     reverse_init();
